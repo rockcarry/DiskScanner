@@ -107,6 +107,7 @@ public class ScanService extends Service
                 @Override
                 public void run() {
                     doScanDisk(path);
+                    sendMessage(MainActivity.MSG_UDPATE_LISTVIEW, 0, 0, 0);
                     mThread = null;
                 }
             };
