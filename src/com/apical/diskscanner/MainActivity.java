@@ -26,8 +26,9 @@ public class MainActivity extends Activity
         @Override
         public void onServiceConnected(ComponentName name, IBinder serv) {
             mScanServ    = ((ScanService.ScanBinder)serv).getService(mHandler);
-            mListAdapter = mScanServ.getFileListAdapter();
+            mListAdapter = new FileListAdapter(MainActivity.this, mScanServ.getFileList());
             mListViewFile.setAdapter(mListAdapter);
+            mListAdapter.notifyDataSetChanged();
         }
 
         @Override
@@ -47,7 +48,7 @@ public class MainActivity extends Activity
 
         // start record service
         Intent i = new Intent(MainActivity.this, ScanService.class);
-        startService(i);
+//      startService(i);
 
         // bind record service
         bindService(i, mScanServiceConn, Context.BIND_AUTO_CREATE);
@@ -61,8 +62,10 @@ public class MainActivity extends Activity
         unbindService(mScanServiceConn);
 
         // stop record service
+        /*
         Intent i = new Intent(MainActivity.this, ScanService.class);
         stopService(i);
+        */
 
         super.onDestroy();
     }
@@ -83,7 +86,6 @@ public class MainActivity extends Activity
         public void handleMessage(Message msg) {
             switch (msg.what) {
             case MSG_UDPATE_LISTVIEW:
-                mListAdapter.update();
                 mListAdapter.notifyDataSetChanged();
                 break;
             }

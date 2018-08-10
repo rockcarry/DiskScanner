@@ -12,25 +12,13 @@ import java.util.List;
 import java.util.ArrayList;
 
 class FileListAdapter extends BaseAdapter {
-    private Context mContext;
-    private List<String> mFileList = new ArrayList();
-    private int mCount = 0;
+    private Context      mContext  = null;
+    private List<String> mFileList = null;
+    private int          mCount    = 0;
 
-    public FileListAdapter(Context context) {
-        mContext = context;
-    }
-
-    public void add(String file) {
-        mFileList.add(file);
-    }
-
-    public void empty() {
-        mFileList.clear();
-        mCount = 0;
-    }
-
-    public void update() {
-        mCount = mFileList.size();
+    public FileListAdapter(Context context, List<String> list) {
+        mContext  = context;
+        mFileList = list;
     }
 
     @Override
@@ -64,6 +52,12 @@ class FileListAdapter extends BaseAdapter {
     @Override
     public final long getItemId(int position) {
         return position;
+    }
+
+    @Override
+    public void notifyDataSetChanged() {
+        mCount = mFileList.size();
+        super.notifyDataSetChanged();
     }
 
     class ViewHolder {
