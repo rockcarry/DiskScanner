@@ -35,8 +35,9 @@ public class ScanService extends Service
 
         // register receiver
         IntentFilter filter = new IntentFilter();
-        filter.addAction(Intent.ACTION_MEDIA_EJECT  );
-        filter.addAction(Intent.ACTION_MEDIA_MOUNTED);
+        filter.addAction(Intent.ACTION_MEDIA_MOUNTED  );
+        filter.addAction(Intent.ACTION_MEDIA_UNMOUNTED);
+        filter.addAction(Intent.ACTION_MEDIA_EJECT    );
         filter.addDataScheme("file");
         registerReceiver(mMediaChangeReceiver, filter);
 
