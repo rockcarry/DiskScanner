@@ -18,20 +18,24 @@ import android.util.Log;
 import java.io.*;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class ScanService extends Service
 {
     private static final String TAG = "ScanService";
-    private ScanBinder   mBinder   = null;
-    private Handler      mHandler  = null;
-    private List<String> mFileList = null;
-    private Thread       mThread   = null;
+    private ScanBinder    mBinder   = null;
+    private Handler       mHandler  = null;
+    private List<String>  mFileList = null;
+    private List<DirItem> mDirList  = null;
+    private Thread        mThread   = null;
 
     @Override
     public void onCreate() {
         Log.d(TAG, "onCreate");
         mBinder   = new ScanBinder();
         mFileList = new ArrayList ();
+        mDirList  = new ArrayList ();
 
         // register receiver
         IntentFilter filter = new IntentFilter();
@@ -78,6 +82,10 @@ public class ScanService extends Service
         return mFileList;
     }
 
+    public List<DirItem> getDirList() {
+        return mDirList;
+    }
+
     private void sendMessage(int what, int arg1, int arg2, Object obj) {
         if (mHandler == null) return;
         Message msg = new Message();
@@ -112,6 +120,47 @@ public class ScanService extends Service
         }
     }
 
+    private void doScanDiskBFS(String dir) {
+        Queue<String> dirlist = new LinkedList<String>();
+        dirlist.offer(dir);
+
+        int     offset = 0;
+        int     number = 0;
+        DirItem diritem= null;
+        while (!dirlist.isEmpty()) {
+            String curdir = dirlist.poll();
+            File fdir = new File(curdir);
+            if (fdir.exists()) {
+                File[] subfiles = fdir.listFiles();
+                if (subfiles != null) {
+                    number  = 0;
+                    diritem = null;
+                    for (File f : subfiles) {
+                        if (mStopScan) break;
+                        if (f.isDirectory()) {
+                            dirlist.offer(f.getAbsolutePath());
+                        } else {
+                            if (f.getAbsolutePath().endsWith(".mp4")) {
+                                if (number == 0) {
+                                    diritem = new DirItem(curdir, offset, number);
+                                    mDirList.add(diritem);
+                                }
+                                mFileList.add(f.getAbsolutePath());
+                                offset++; number++;
+                                if (diritem != null) diritem.number = number;
+                            }
+                            if (SystemClock.uptimeMillis() - mLastTime > 500) {
+                                mLastTime = SystemClock.uptimeMillis();
+                                sendMessage(MainActivity.MSG_UDPATE_LISTVIEW, 0, 0, 0);
+                            }
+//                          try { Thread.sleep(100); } catch (Exception e) { e.printStackTrace(); }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private void setScanDiskThreadStart(boolean start, final String path) {
         if (start) {
             if (mThread != null) return;
@@ -120,7 +169,8 @@ public class ScanService extends Service
             mThread   = new Thread() {
                 @Override
                 public void run() {
-                    doScanDisk(path);
+//                  doScanDisk(path);
+                    doScanDiskBFS(path);
                     sendMessage(MainActivity.MSG_UDPATE_LISTVIEW, 0, 0, 0);
                     mThread = null;
                 }
@@ -147,12 +197,14 @@ public class ScanService extends Service
                 if (path.contains("extsd")) {
                     setScanDiskThreadStart(false, path);
                     mFileList.clear();
+                    mDirList .clear();
                     sendMessage(MainActivity.MSG_UDPATE_LISTVIEW, 0, 0, 0);
                 }
             } else if (action.equals(Intent.ACTION_MEDIA_MOUNTED)) {
                 Log.i(TAG, "Intent.ACTION_MEDIA_MOUNTED = " + path);
                 if (path.contains("extsd")) {
                     mFileList.clear();
+                    mDirList .clear();
                     setScanDiskThreadStart(true , path);
                 }
             }

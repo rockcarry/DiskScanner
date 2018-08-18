@@ -11,24 +11,33 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.util.Log;
 
+import java.util.List;
+
 public class MainActivity extends Activity
 {
     private static final String TAG = "MainActivity";
+    private ListView        mListViewDir;
     private ListView        mListViewFile;
-    private FileListAdapter mListAdapter;
+    private ListAdapterDir  mListAdapterDir;
+    private ListAdapterFile mListAdapterFile;
+    private int             mSelectedDirItem;
 
     private ScanService mScanServ = null;
     private ServiceConnection mScanServiceConn = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder serv) {
-            mScanServ    = ((ScanService.ScanBinder)serv).getService(mHandler);
-            mListAdapter = new FileListAdapter(MainActivity.this, mScanServ.getFileList());
-            mListViewFile.setAdapter(mListAdapter);
-            mListAdapter.notifyDataSetChanged();
+            mScanServ        = ((ScanService.ScanBinder)serv).getService(mHandler);
+            mListAdapterDir  = new ListAdapterDir (MainActivity.this, mScanServ.getDirList ());
+            mListAdapterFile = new ListAdapterFile(MainActivity.this, mScanServ.getFileList());
+            mListViewDir .setAdapter(mListAdapterDir );
+            mListViewFile.setAdapter(mListAdapterFile);
+            mListAdapterDir .notifyDataSetChanged();
+            mListAdapterFile.notifyDataSetChanged();
         }
 
         @Override
@@ -44,7 +53,13 @@ public class MainActivity extends Activity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
-        mListViewFile = (ListView)findViewById(R.id.lv_file_list );
+        mListViewDir  = (ListView)findViewById(R.id.lv_dir_list );
+        mListViewFile = (ListView)findViewById(R.id.lv_file_list);
+        mListViewDir .setOnItemClickListener(mDirListItemClickListener);
+        mListViewDir .setVisibility(View.VISIBLE);
+        mListViewFile.setVisibility(View.VISIBLE);
+
+        mSelectedDirItem = -1;
 
         // start record service
         Intent i = new Intent(MainActivity.this, ScanService.class);
@@ -80,13 +95,33 @@ public class MainActivity extends Activity
         super.onPause();
     }
 
+    private AdapterView.OnItemClickListener mDirListItemClickListener = new AdapterView.OnItemClickListener() {
+        @Override
+        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            mSelectedDirItem = position;
+            mListAdapterDir.setSelected(position);
+            mHandler.sendEmptyMessage(MSG_UDPATE_LISTVIEW);
+        }
+    };
+
     public static final int MSG_UDPATE_LISTVIEW = 1;
     private Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
             case MSG_UDPATE_LISTVIEW:
-                mListAdapter.notifyDataSetChanged();
+                List<DirItem> list = mScanServ.getDirList();
+                if (list.isEmpty()) {
+                    mSelectedDirItem = -1;
+                    mListAdapterDir.setSelected(-1);
+                    mListAdapterFile.setOffNum(0, 0);
+                } else if (mSelectedDirItem >= 0 && mSelectedDirItem < list.size()) {
+                    int offset = list.get(mSelectedDirItem).offset;
+                    int number = list.get(mSelectedDirItem).number;
+                    mListAdapterFile.setOffNum(offset, number);
+                }
+                mListAdapterDir .notifyDataSetChanged();
+                mListAdapterFile.notifyDataSetChanged();
                 break;
             }
         }

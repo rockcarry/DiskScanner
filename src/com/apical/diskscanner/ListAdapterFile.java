@@ -8,15 +8,17 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import java.io.File;
 import java.util.List;
 import java.util.ArrayList;
 
-class FileListAdapter extends BaseAdapter {
+class ListAdapterFile extends BaseAdapter {
     private Context      mContext  = null;
     private List<String> mFileList = null;
+    private int          mOffset   = 0;
     private int          mCount    = 0;
 
-    public FileListAdapter(Context context, List<String> list) {
+    public ListAdapterFile(Context context, List<String> list) {
         mContext  = context;
         mFileList = list;
     }
@@ -34,7 +36,9 @@ class FileListAdapter extends BaseAdapter {
             holder = (ViewHolder) convertView.getTag();
         }
 
-        holder.fi_name.setText(mFileList.get(position));
+        String filepath = mFileList.get(mOffset + position);
+        String filename = (new File(filepath)).getName();
+        holder.fi_name.setText(filename);
         return convertView;
     }
 
@@ -46,18 +50,23 @@ class FileListAdapter extends BaseAdapter {
 
     @Override
     public final Object getItem(int position) {
-        return mFileList.get(position);
+        return mFileList.get(mOffset + position);
     }
 
     @Override
     public final long getItemId(int position) {
-        return position;
+        return mOffset + position;
     }
 
     @Override
     public void notifyDataSetChanged() {
-        mCount = mFileList.size();
+//      mCount = mFileList.size();
         super.notifyDataSetChanged();
+    }
+
+    public void setOffNum(int off, int num) {
+        mOffset = off;
+        mCount  = num;
     }
 
     class ViewHolder {
